@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  scaffold:
+    name: Scaffold checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Prepare local environment
+        run: cp .env.example .env
+
+      - name: Lint
+        run: |
+          echo "Lint placeholder: implementation-specific linting starts in follow-up tasks."
+
+      - name: Test
+        run: |
+          echo "Test placeholder: implementation-specific tests start in follow-up tasks."
+
+      - name: Validate Docker Compose
+        run: docker compose config
+
+      - name: Build
+        run: docker compose build

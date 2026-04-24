@@ -1,0 +1,12 @@
+services:
+  frontend:
+    volumes:
+      - ./frontend:/app
+
+  backend:
+    volumes:
+      - ./backend:/app
+
+  worker:
+    volumes:
+      - ./agent:/agent

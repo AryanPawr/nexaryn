@@ -1,0 +1,116 @@
+name: ${COMPOSE_PROJECT_NAME:-nexaryn}
+
+x-nexaryn-env: &nexaryn-env
+  env_file:
+    - .env.example
+    - path: .env
+      required: false
+
+services:
+  frontend:
+    <<: *nexaryn-env
+    image: node:22-alpine
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - node -e "console.log('Nexaryn frontend scaffold ready for Next.js implementation.'); setInterval(() => {}, 3600000)"
+    ports:
+      - "${FRONTEND_PORT:-3002}:3000"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  backend:
+    <<: *nexaryn-env
+    image: python:3.12-slim
+    working_dir: /app
+    command:
+      - python
+      - -c
+      - |
+        import socket
+        import time
+
+        for host, port in (("postgres", 5432), ("redis", 6379)):
+            for _ in range(60):
+                try:
+                    with socket.create_connection((host, port), timeout=2):
+                        break
+                except OSError:
+                    time.sleep(1)
+            else:
+                raise SystemExit(f"Could not reach {host}:{port}")
+
+        print("Nexaryn backend scaffold ready for FastAPI implementation.", flush=True)
+        while True:
+            time.sleep(3600)
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    <<: *nexaryn-env
+    image: python:3.12-slim
+    working_dir: /agent
+    command:
+      - python
+      - -c
+      - |
+        import socket
+        import time
+
+        for host, port in (("postgres", 5432), ("redis", 6379)):
+            for _ in range(60):
+                try:
+                    with socket.create_connection((host, port), timeout=2):
+                        break
+                except OSError:
+                    time.sleep(1)
+            else:
+                raise SystemExit(f"Could not reach {host}:{port}")
+
+        print("Nexaryn worker scaffold ready for agent telemetry jobs.", flush=True)
+        while True:
+            time.sleep(3600)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    <<: *nexaryn-env
+    image: postgres:16-alpine
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    <<: *nexaryn-env
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
