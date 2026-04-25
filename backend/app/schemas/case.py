@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any
 
 from app.schemas.common import CaseStatus, NexarynSchema, Severity
+from app.schemas.finding import FindingRead
 
 
 class CaseBase(NexarynSchema):
@@ -22,3 +23,7 @@ class CaseCreate(CaseBase):
 
 class CaseRead(CaseBase):
     id: uuid.UUID
+
+
+class CaseDetailRead(CaseRead):
+    findings: list[FindingRead]
